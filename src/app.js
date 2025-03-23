@@ -1,10 +1,151 @@
 const express = require("express");
+const connectDB = require("./config/database");
+const User = require("./models/user");
 const app = express();
 
-app.use("/",(req,res) =>{
-    res.send("Hello from the server.")
-})
+//take the user input -> convert express json -> javascript obj
+app.use(express.json());
 
-app.listen(3000, ()=>{
-    console.log("App is listening in port 3000")
+
+
+
+//user signup form
+app.post("/signup", async (req, res) => {
+
+    const { emailId } = req.body;
+
+    try {
+
+        const existingUser = await User.findOne({ emailId: emailId });
+
+        //checking the unique mail id
+        if (existingUser) {
+            return res.status(400).send("Email is already in use. Please use a different email.");
+        }
+
+        const user = new User(req.body);
+
+        await user.save();
+        res.send("User created successfully!");
+
+    } catch (err) {
+        res.status(400).send("Error in saving the user" + err.message);
+    }
+
 });
+
+//get user by email id
+app.get("/user", async (req, res) => {
+
+    const { emailId } = req.body;
+
+    const getUserByMail = await User.findOne({ emailId: emailId });
+
+    try {
+
+        if (!getUserByMail) {
+            res.status(400).send("No user found");
+        } else {
+            res.send(getUserByMail);
+        }
+
+    } catch (err) {
+        res.status(400).send("Something went wrong" + err.message)
+    }
+
+});
+
+//get all users
+app.get("/feed", async (req, res) => {
+
+    const getAllUsers = await User.find({});
+    try {
+
+        if (getAllUsers.length > 0) {
+            res.send(getAllUsers);
+        } else {
+            res.status(400).send("No users found");
+        }
+
+    } catch (err) {
+        res.status(400).send("Something went wrong" + err.message);
+    }
+});
+
+//update users data
+app.patch("/updateData/:userId", async (req, res) => {
+    const userId = req.params?.userId;
+    const userData = req.body;
+
+    try {
+
+        const allowedUpdates = ["skills","photoUrl","about","emailId"];
+        const checkUpdates = Object.keys(userData).every((item) => allowedUpdates.includes(item));
+    
+        if(!checkUpdates) {
+            throw new Error("Update Not Allowed");
+        }
+
+        if(userData?.skills.length > 10) {
+            throw new Error("Skills cannot be more than 10");
+        }
+
+        const updateUserData = await User.findByIdAndUpdate( {_id: userId}, userData, {
+            returnDocument: "after",
+            runValidators: true
+        });
+
+        console.log(updateUserData)
+
+        res.send("User Updated Successfully")
+
+    } catch(err) {
+        res.status(400).send("Update Failed:" + err.message)
+    }
+
+});
+
+//delete user
+app.delete("/removeUser", async (req,res) => {
+
+    const removeUser = await User.findByIdAndDelete(req.body.userId);
+    console.log(removeUser)
+    
+    try {
+        if(!removeUser) {
+            res.send("User Id is not present");
+        } else {
+            res.send("User removed");
+        }
+
+    } catch (err) {
+        res.status(400).send("Something went wrong"+ err.message)
+    }
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//connect to database
+connectDB()
+    .then(() => {
+        console.log("Database connected successfully!");
+        app.listen(3000, () => {
+            console.log("App is listening in port 3000")
+        });
+    })
+    .catch((err) => {
+        console.log(err);
+    });
