@@ -78,7 +78,7 @@ authRouter.post("/login", async (req, res) => {
             });
 
             res.status(200).json({
-                msg: "Login Success",
+                msg: "Login Successfull",
                 emailId: validUser.emailId
             });
         }
@@ -86,6 +86,30 @@ authRouter.post("/login", async (req, res) => {
 
     } catch(err) {
         // res.status(400).send("Login Error"+ err.message);
+
+        res.status(400).json({
+            msg: err.message
+        });
+    }
+
+});
+
+
+//user logout
+authRouter.post("/logout", async (req, res) => {
+
+    try {
+
+        res.cookie("token", null, {
+            expires: new Date(Date.now()),
+        });
+
+        res.status(200).json({
+            msg: "Logout Successfull",
+        });
+
+
+    } catch(err) {
 
         res.status(400).json({
             msg: err.message
